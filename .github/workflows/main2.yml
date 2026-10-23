@@ -2,32 +2,41 @@ name: Build Android APK
 on: [push, workflow_dispatch]
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # تم تحديد إصدار Ubuntu مستقر لتجنب أي تغييرات مفاجئة عند تحديث ubuntu-latest مستقبلاً
+    runs-on: ubuntu-24.04
     steps:
+      # تحديث الإجراءات إلى الإصدار المتوافق مع Node.js 24
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          
       - run: npm install --legacy-peer-deps
       - run: npm run build
+      
+      # ترقية setup-java إلى الإصدار v4 أو v5 لحل تحذير الـ Deprecation
       - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17' 
           
-      # 1. تثبيت حزمة Capacitor CLI بشكل صريح لتفادي خطأ npm error
+      # 1. تثبيت حزمة Capacitor CLI مع تجاهل تعارض الإصدارات لتفادي خطأ npm error
       - name: Install Capacitor CLI
-        run: npm install @capacitor/cli
+        run: npm install @capacitor/cli --legacy-peer-deps
 
       # 2. تشغيل المزامنة باستخدام المجلد المحلي للنظام
       - name: Run Capacitor Sync
         run: ./node_modules/.bin/cap sync
 
+      # تجميع بيئة الأندرويد وإعطاء الصلاحيات لـ Gradle
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
+          
+      # رفع ملف الـ APK الناتج كملف مستندات (Artifact)
       - uses: actions/upload-artifact@v4
         with:
           name: DLNE-App-APK
